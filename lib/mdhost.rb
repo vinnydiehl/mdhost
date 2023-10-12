@@ -43,8 +43,10 @@ module MDHost
       end
 
       # We don't *need* to pretty format the table so precisely, but why not?
-      engine_length = table.keys.max_by(&:length).length
-      result_length = table.values.max_by(&:length).length
+      # The smallest this can be is 6 because of the length of the "Engine"
+      # and "Result" headers.
+      engine_length = [table.keys.max_by(&:length).length, 6].max
+      result_length = [table.values.max_by(&:length).length, 6].max
 
       markdown_table = table.map do |e, r|
         "|#{e}#{' ' * (engine_length - e.length)}|#{r}#{' ' * (result_length - r.length)}|"
