@@ -1,34 +1,66 @@
 # frozen_string_literal: true
 
 require "clipboard"
+require "optimist"
 
-VERSION = File.read(File.expand_path("../VERSION", __dir__)).strip.freeze
+FORMAT_SPECIFIER = '#{}'
 
 module MDHost
   class CLI
     def initialize
-      if ARGV.empty? || %w[--version -v].include?(ARGV.first)
-        puts "mdhost version #{VERSION}"
-        exit 0
+      @options = Optimist.options do
+        version "mdhost #{File.read(File.expand_path('../VERSION', __dir__)).strip}"
+
+        banner <<~BANNER
+          #{version}
+
+          Usage:
+            mdhost INPUT
+            mdhost --format FORMAT_STRING INPUTS...
+
+          Given a format string, inputs will be formatted to the location of
+          the sequence #{FORMAT_SPECIFIER}
+
+          Options:
+        BANNER
+
+        opt :format, "Format string to compose multiple inputs into", type: :string
+
+        educate_on_error
       end
 
-      @input = ARGV.first
+      if ARGV.empty?
+        Optimist::educate
+      end
     end
 
     def run
-      # Display table
-      system("eshost", "-h", "JavaScriptCore,SpiderMonkey,V8", "-te", @input)
-
-      # Pretty escape the input (we'll be using it in the markdown so we want
-      # it to look clean)
-      escaped_input = if @input.include?("'") && @input.include?('"')
-        "\"#{@input.gsub('"', '\"')}\""
-      elsif @input.include?('"')
-        "'#{@input}'"
+      if (@format_string = @options.format)
+        Optimist::educate unless @format_string.include?(FORMAT_SPECIFIER)
+        run_format
       else
-        "\"#{@input}\""
+        @input = ARGV.first
+        run_single_input
       end
+    end
 
+    # Pretty escape the input (we might be using it in the markdown so
+    # we want it to look clean)
+    def escape_input(input)
+      if input.include?("'") && input.include?('"')
+        "\"#{input.gsub('"', '\"')}\""
+      elsif input.include?('"')
+        "'#{input}'"
+      else
+        "\"#{input}\""
+      end
+    end
+
+    def display_table(input)
+      system("eshost", "-h", "JavaScriptCore,SpiderMonkey,V8", "-te", input)
+    end
+
+    def results_for(escaped_input)
       result = `eshost -e #{escaped_input}`.split(/\n+/)
 
       # We can't just #each_slice by 2, because sometimes an engine acts up and
@@ -41,6 +73,18 @@ module MDHost
           table[line.match(/\w+/).to_s.to_sym] = result[i + 1]
         end
       end
+
+      table
+    end
+
+    def run_single_input
+      display_table @input
+
+      escaped_input = escape_input @input
+
+      result = `eshost -e #{escaped_input}`.split(/\n+/)
+
+      table = results_for escaped_input
 
       # We don't *need* to pretty format the table so precisely, but why not?
       # The smallest this can be is 6 because of the length of the "Engine"
@@ -60,6 +104,30 @@ module MDHost
         |#{'-' * engine_length}|#{'-' * result_length}|
         #{markdown_table}
       EOS
+
+      Clipboard.copy(output)
+    end
+
+    def run_format
+      inputs = ARGV.map { |s| @format_string.sub(FORMAT_SPECIFIER, s) }
+      inputs.each do |input|
+        puts input
+        display_table input
+      end
+
+      output = +<<~TABLE
+        |Input|JavaScriptCore|SpiderMonkey|V8
+        |-----|--------------|------------|--
+      TABLE
+
+      inputs.each do |input|
+        escaped_input = escape_input input
+        results = results_for escaped_input
+
+        output << <<~ROW
+          |`#{input}`|#{results[:JavaScriptCore]}|#{results[:SpiderMonkey]}|#{results[:V8]}
+        ROW
+      end
 
       Clipboard.copy(output)
     end

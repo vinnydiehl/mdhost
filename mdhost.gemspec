@@ -20,6 +20,7 @@ Gem::Specification.new do |gem|
   gem.files = `git ls-files -z`.split "\x0"
 
   gem.add_dependency "clipboard", "~> 1.1"
+  gem.add_dependency "optimist", "~> 3.1"
 
   gem.add_development_dependency "rubocop", "~> 1.54"
 end
