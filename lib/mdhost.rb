@@ -36,7 +36,13 @@ module MDHost
     end
 
     def run
-      if (@format_string = @options.format)
+      @format_string = @options.format
+
+      if !@format_string && ARGV.length > 1
+        @format_string = FORMAT_SPECIFIER
+      end
+
+      if @format_string
         Optimist.educate unless @format_string.include?(FORMAT_SPECIFIER)
         run_format
       else
