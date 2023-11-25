@@ -25,6 +25,7 @@ module MDHost
         BANNER
 
         opt :format, "Format string to compose multiple inputs into", type: :string
+        opt :table_format, 'Format string to use for the table "Input" column', type: :string
 
         educate_on_error
       end
@@ -108,24 +109,30 @@ module MDHost
       Clipboard.copy(output)
     end
 
-    def run_format
-      inputs = ARGV.map { |s| @format_string.sub(FORMAT_SPECIFIER, s) }
-      inputs.each do |input|
-        puts input
-        display_table input
-      end
+    def format(format_string, input)
+      format_string.sub(FORMAT_SPECIFIER, input)
+    end
 
+    def run_format
       output = +<<~TABLE
         |Input|JavaScriptCore|SpiderMonkey|V8
         |-----|--------------|------------|--
       TABLE
 
-      inputs.each do |input|
-        escaped_input = escape_input input
+      ARGV.each do |input|
+        formatted_input = format(@format_string, input)
+
+        puts formatted_input
+        display_table formatted_input
+
+        escaped_input = escape_input formatted_input
         results = results_for escaped_input
 
+        display_input = @options.table_format ? format(@options.table_format, input)
+                                              : formatted_input
+
         output << <<~ROW
-          |`#{input}`|#{results[:JavaScriptCore]}|#{results[:SpiderMonkey]}|#{results[:V8]}
+          |`#{display_input}`|#{results[:JavaScriptCore]}|#{results[:SpiderMonkey]}|#{results[:V8]}
         ROW
       end
 
