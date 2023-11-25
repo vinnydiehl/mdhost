@@ -29,6 +29,10 @@ Layout/SpaceAroundEqualsInParameterDefault:
 Layout/TrailingWhitespace:
   AllowInHeredoc: false
 
+Lint/InterpolationCheck:
+  Exclude:
+    - lib/mdhost.rb
+
 Lint/NonDeterministicRequireOrder:
   Enabled: false
 

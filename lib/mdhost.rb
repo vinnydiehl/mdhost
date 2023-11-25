@@ -31,13 +31,13 @@ module MDHost
       end
 
       if ARGV.empty?
-        Optimist::educate
+        Optimist.educate
       end
     end
 
     def run
       if (@format_string = @options.format)
-        Optimist::educate unless @format_string.include?(FORMAT_SPECIFIER)
+        Optimist.educate unless @format_string.include?(FORMAT_SPECIFIER)
         run_format
       else
         @input = ARGV.first
@@ -82,9 +82,6 @@ module MDHost
       display_table @input
 
       escaped_input = escape_input @input
-
-      result = `eshost -e #{escaped_input}`.split(/\n+/)
-
       table = results_for escaped_input
 
       # We don't *need* to pretty format the table so precisely, but why not?
