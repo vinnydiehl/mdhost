@@ -27,6 +27,8 @@ module MDHost
         opt :format, "Format string to compose multiple inputs into", type: :string
         opt :table_format, 'Format string to use for the table "Input" column', type: :string
 
+        opt :browser_names, "Use browser names in output table"
+
         educate_on_error
       end
 
@@ -117,10 +119,10 @@ module MDHost
     end
 
     def run_format
-      output = +<<~TABLE
-        |Input|JavaScriptCore|SpiderMonkey|V8
-        |-----|--------------|------------|--
-      TABLE
+      output = +"|Input|"
+      output += @options.browser_names ? "Safari|Firefox|Chrome"
+                                       : "JavaScriptCore|SpiderMonkey|V8"
+      output += "\n|---|---|---|---\n"
 
       ARGV.each do |input|
         formatted_input = format(@format_string, input)
