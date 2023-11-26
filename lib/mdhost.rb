@@ -66,11 +66,11 @@ module MDHost
     end
 
     def display_table(input)
-      system("eshost", "-h", "JavaScriptCore,SpiderMonkey,V8", "-te", input)
+      system("eshost", "-g", "jsc,jsshell,d8", "-te", input)
     end
 
     def results_for(escaped_input)
-      result = `eshost -e #{escaped_input}`.split(/\n+/)
+      result = `eshost -g jsc,jsshell,d8 -e #{escaped_input}`.split(/\n+/)
 
       # We can't just #each_slice by 2, because sometimes an engine acts up and
       # produces no output, which would mess up the grouping. So, we need to
@@ -78,8 +78,12 @@ module MDHost
       # line as the result.
       table = {}
       result.each_with_index do |line, i|
-        if %w[JavaScriptCore SpiderMonkey V8].any? { |e| line.end_with? e }
-          table[line.match(/\w+/).to_s.to_sym] = result[i + 1]
+        engine_name = %w[JavaScriptCore SpiderMonkey V8].find do |engine|
+          line.downcase.end_with?(engine.downcase)
+        end
+
+        if engine_name
+          table[engine_name.to_sym] = result[i + 1]
         end
       end
 
