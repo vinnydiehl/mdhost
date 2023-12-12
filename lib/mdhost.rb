@@ -24,6 +24,7 @@ module MDHost
           Options:
         BANNER
 
+        opt :execute, "Execute the input using `eshost -x`", short: :x
         opt :format, "Format string to compose multiple inputs into", type: :string
         opt :table_format, 'Format string to use for the table "Input" column', type: :string
 
@@ -38,6 +39,7 @@ module MDHost
     end
 
     def run
+      @eshost_mode = @options.execute ? "x" : "e"
       @format_string = @options.format
 
       if !@format_string && ARGV.length > 1
@@ -66,11 +68,11 @@ module MDHost
     end
 
     def display_table(input)
-      system("eshost", "-g", "jsc,jsshell,d8", "-te", input)
+      system("eshost", "-g", "jsc,jsshell,d8", "-t#{@eshost_mode}", input)
     end
 
     def results_for(escaped_input)
-      result = `eshost -g jsc,jsshell,d8 -e #{escaped_input}`.split(/\n+/)
+      result = `eshost -g jsc,jsshell,d8 -#{@eshost_mode} #{escaped_input}`.split(/\n+/)
 
       # We can't just #each_slice by 2, because sometimes an engine acts up and
       # produces no output, which would mess up the grouping. So, we need to
@@ -108,7 +110,7 @@ module MDHost
 
       output = <<~EOS
         ```
-        > eshost -te #{escaped_input}
+        > eshost -t#{@eshost_mode} #{escaped_input}
         ```
         |Engine#{' ' * (engine_length - 6)}|Result#{' ' * (result_length - 6)}|
         |#{'-' * engine_length}|#{'-' * result_length}|
